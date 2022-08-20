@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+option go_package = "github.com/chukmunnlee/bgg-grpc/grpc";
+
+package grpc;
+
+/*
+CREATE TABLE IF NOT EXISTS "game" (
+	"gid" INTEGER NOT NULL  ,
+	"name" VARCHAR(256) NOT NULL  ,
+	"year" INTEGER NOT NULL  ,
+	"ranking" INTEGER NOT NULL  ,
+	"users_rated" INTEGER NOT NULL  ,
+	"url" VARCHAR(512) NULL  ,
+	"image" VARCHAR(512) NULL  ,
+	PRIMARY KEY ("gid")
+);
+
+CREATE TABLE IF NOT EXISTS "comment" (
+	"c_id" CHARACTER(8) NOT NULL  ,
+	"user" VARCHAR(64) NOT NULL  ,
+	"rating" INTEGER NULL  ,
+	"c_text" TEXT NULL  ,
+	"gid" INTEGER NOT NULL  ,
+	PRIMARY KEY ("c_id")
+);
+*/
+
+message Game {
+	int32 gameId = 1;
+	string name = 2;
+	int32 year = 3;
+	int32 ranking = 4;
+	int32 usersRated = 5;
+	string url = 6;
+	string image = 7;
+}
+
+message Comment {
+	string id = 1;
+	string user = 2;
+	int32 rating = 3;
+	string text = 4;
+	int32 gameId = 5;
+}
+
+message FindBoardgameByNameRequest {
+	string query = 1;
+	int32 limit = 2;
+	int32 offset = 3;
+}
+message FindBoardgameByNameResponse {
+	repeated Game games = 1; 
+	int32 limit = 2;
+	int32 offset = 3;
+	int32 total = 4;
+}
+
+service BGGService {
+	rpc FindBoardgameByName(FindBoardgameByNameRequest) returns(FindBoardgameByNameResponse) {};
+}
