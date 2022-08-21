@@ -1,18 +1,24 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"strings"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
 	db "github.com/chukmunnlee/bgg-grpc/data"
+	svc "github.com/chukmunnlee/bgg-grpc/grpc"
 )
 
 func main() {
 
-	dbFile := flag.String("database", "", "sqlite3 database file")
+	dbFile := flag.String("database", "", "Sqlite3 database file")
+	port := flag.Int("port", 50051, "Server's port")
+	reflect := flag.Bool("reflect", false, "Enable reflection")
 	flag.Parse()
 
 	if isNull(*dbFile) {
@@ -25,14 +31,27 @@ func main() {
 	}
 	defer bggdb.Close()
 
-	games, err := bggdb.FindBoardgameByName(context.Background(), "carcassonne", 10, 0)
-	if nil != err {
-		log.Fatalf("Query error: %v", err)
+	log.Printf("Using %s as database", *dbFile)
+
+	s := grpc.NewServer()
+	bggSvc := svc.New(bggdb)
+	svc.RegisterBGGServiceServer(s, bggSvc)
+
+	if *reflect {
+		log.Println("Enabling reflection")
+		reflection.Register(s)
 	}
 
-	for _, g := range *games {
-		fmt.Printf("GameId: %d, Name: %s\n", g.GameId, g.Name)
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
+	if nil != err {
+		log.Fatalf("Cannot create listener: %v\n", err)
 	}
+
+	log.Printf("Starting BGGService on port %d", *port)
+	if err := s.Listen(lis); nil != err {
+		log.Fatalf("Cannot start service: %v", err)
+	}
+
 }
 
 func isNull(s string) bool {

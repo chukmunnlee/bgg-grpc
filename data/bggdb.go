@@ -63,7 +63,8 @@ func (rec *Comment) Polulate(row *sql.Rows) error {
 }
 
 const (
-	FIND_GAME_BY_NAME = "select * from game where name like ? limit ? offset ?"
+	FIND_GAME_BY_NAME  = "select * from game where name like ? limit ? offset ?"
+	COUNT_GAME_BY_NAME = "select count(*) as game_count from game where name like ?"
 )
 
 func New(dbFile string) BggDB {
@@ -89,6 +90,22 @@ func (bggdb *BggDB) FindBoardgameByName(ctx context.Context, query string, limit
 	}
 
 	return &results, nil
+}
+
+func (bggdb *BggDB) CountBoardgamesByName(ctx context.Context, query string) (*int32, error) {
+	rows, err := bggdb.db.QueryContext(ctx, COUNT_GAME_BY_NAME, fmt.Sprintf("%%%s%%", query))
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	defer rows.Close()
+
+	var count int32 = 0
+	if rows.Next() {
+		if err := rows.Scan(&count); nil != err {
+			return nil, fmt.Errorf("rows.Scan: %v", err)
+		}
+	}
+	return &count, nil
 }
 
 func (bggdb *BggDB) Open() error {
