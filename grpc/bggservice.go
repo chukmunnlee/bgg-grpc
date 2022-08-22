@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/chukmunnlee/bgg-grpc/data"
 )
@@ -22,6 +23,8 @@ func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardga
 	limit := req.GetLimit()
 	offset := req.GetOffset()
 	query := req.GetQuery()
+
+	log.Printf("FindBoardgameByName: query=%s, offset=%d, limit=%d", query, offset, limit)
 
 	rows, err := svc.bggDB.FindBoardgameByName(ctx, query, limit, offset)
 	if nil != err {

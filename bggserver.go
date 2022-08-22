@@ -35,20 +35,20 @@ func main() {
 
 	s := grpc.NewServer()
 	bggSvc := svc.New(bggdb)
-	svc.RegisterBGGServiceServer(s, bggSvc)
+	svc.RegisterBGGServiceServer(s, &bggSvc)
 
 	if *reflect {
 		log.Println("Enabling reflection")
 		reflection.Register(s)
 	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
 	if nil != err {
 		log.Fatalf("Cannot create listener: %v\n", err)
 	}
 
 	log.Printf("Starting BGGService on port %d", *port)
-	if err := s.Listen(lis); nil != err {
+	if err := s.Serve(lis); nil != err {
 		log.Fatalf("Cannot start service: %v", err)
 	}
 
