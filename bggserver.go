@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -46,12 +48,19 @@ func main() {
 	if nil != err {
 		log.Fatalf("Cannot create listener: %v\n", err)
 	}
+	defer lis.Close()
 
 	log.Printf("Starting BGGService on port %d", *port)
-	if err := s.Serve(lis); nil != err {
-		log.Fatalf("Cannot start service: %v", err)
-	}
+	go func() {
+		if err := s.Serve(lis); nil != err {
+			log.Fatalf("Cannot start service: %v", err)
+		}
+	}()
 
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
+	log.Printf("Shutting down server")
 }
 
 func isNull(s string) bool {

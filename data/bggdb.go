@@ -5,13 +5,15 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sync/atomic"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type BggDB struct {
-	dbFile string
-	db     *sql.DB
+	dbFile   string
+	db       *sql.DB
+	newIndex int32
 }
 
 /*
@@ -63,9 +65,11 @@ func (rec *Comment) Polulate(row *sql.Rows) error {
 }
 
 const (
-	FIND_GAME_BY_NAME  = "select * from game where name like ? limit ? offset ?"
-	COUNT_GAME_BY_NAME = "select count(*) as game_count from game where name like ?"
-	FIND_GAME_BY_ID    = "select * from game where gid = ?"
+	FIND_GAME_BY_NAME    = "select * from game where name like ? limit ? offset ?"
+	COUNT_GAME_BY_NAME   = "select count(*) as game_count from game where name like ?"
+	FIND_GAME_BY_ID      = "select * from game where gid = ?"
+	FIND_LARGEST_GAME_ID = "select gid from game order by gid desc limit 1"
+	INSERT_NEW_GAME      = "insert into game(gid, name, year, ranking, users_rated, url, image) values (?, ?, ?, ?, ?, ?, ?)"
 )
 
 func New(dbFile string) BggDB {
@@ -126,13 +130,62 @@ func (bggdb *BggDB) FindBoardgameById(ctx context.Context, gameId int32) (*Game,
 	return &result, nil
 }
 
+func (bggdb *BggDB) FindLargestGameId(ctx context.Context) (*int32, error) {
+	rows, err := bggdb.db.QueryContext(ctx, FIND_LARGEST_GAME_ID)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, fmt.Errorf("no game records in the database?")
+	}
+
+	var lastIndex int32
+	if err := rows.Scan(&lastIndex); nil != err {
+		return nil, fmt.Errorf("cannot read last index from game table: %v", err)
+	}
+
+	return &lastIndex, nil
+}
+
+func (bggdb *BggDB) InsertNewBoardGame(ctx context.Context, game Game) (*int32, error) {
+
+	newGameId := atomic.AddInt32(&bggdb.newIndex, 1)
+
+	result, err := bggdb.db.ExecContext(ctx, INSERT_NEW_GAME, newGameId, game.Name,
+		game.Year, game.Ranking, game.UsersRated, game.Url, game.Image)
+
+	if nil != err {
+		return nil, fmt.Errorf("insert error: %v", err)
+	}
+
+	rowCount, err := result.RowsAffected()
+	if nil != err {
+		return nil, fmt.Errorf("insert error: %v", err)
+	}
+	if rowCount < 1 {
+		return nil, fmt.Errorf("inserted but row count is not 1: %d", rowCount)
+	}
+
+	return &newGameId, nil
+}
+
 func (bggdb *BggDB) Open() error {
 	if db, err := sql.Open("sqlite3", bggdb.dbFile); nil != err {
 		return err
 	} else {
 		bggdb.db = db
+		// Ignore error
+		idx, _ := bggdb.FindLargestGameId(context.Background())
+		bggdb.newIndex = *idx + 10
 	}
+
 	return nil
+}
+
+func (bggdb *BggDB) StartOfNewGameId() int32 {
+	return bggdb.newIndex
 }
 
 func (bggdb *BggDB) Close() error {

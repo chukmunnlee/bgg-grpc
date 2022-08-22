@@ -17,7 +17,9 @@ type BGGService struct {
 }
 
 func New(bggDB data.BggDB) BGGService {
-	return BGGService{bggDB: bggDB}
+	svc := BGGService{bggDB: bggDB}
+	log.Printf("Start of gameId index: %d", bggDB.StartOfNewGameId())
+	return svc
 }
 
 func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardgameByNameRequest) (*FindBoardgameByNameResponse, error) {
@@ -73,6 +75,29 @@ func (svc *BGGService) FindBoardgameById(ctx context.Context, req *FindBoardgame
 
 	result := populateGame(*game)
 	resp := FindBoardgameByIdResponse{Game: &result, Found: true}
+
+	return &resp, nil
+}
+
+func (svc *BGGService) InsertNewBoardGame(ctx context.Context, req *InsertNewBoardgameRequest) (*InsertNewBoardgameResponse, error) {
+
+	log.Printf("InsertNewBoardGame: game=%v", req.GetGame())
+
+	newGame := data.Game{
+		Name:       req.GetGame().Name,
+		Year:       req.GetGame().Year,
+		Ranking:    req.GetGame().Ranking,
+		UsersRated: req.GetGame().UsersRated,
+		Url:        req.GetGame().Url,
+		Image:      req.GetGame().Image,
+	}
+
+	newGameId, err := svc.bggDB.InsertNewBoardGame(ctx, newGame)
+	if nil != err {
+		return nil, fmt.Errorf("Cannot insert new boardgame: %v", err)
+	}
+
+	resp := InsertNewBoardgameResponse{GameId: *newGameId}
 
 	return &resp, nil
 }
