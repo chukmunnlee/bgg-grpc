@@ -56,6 +56,16 @@ message FindBoardgameByNameResponse {
 	int32 total = 4;
 }
 
+message FindBoardgameByIdRequest {
+	int32 gameId = 1;
+}
+message FindBoardgameByIdResponse {
+	Game game = 1;
+	bool found = 2;
+	string message = 3;
+}
+
 service BGGService {
 	rpc FindBoardgameByName(FindBoardgameByNameRequest) returns(FindBoardgameByNameResponse) {};
+	rpc FindBoardgameById(FindBoardgameByIdRequest) returns(FindBoardgameByIdResponse) {};
 }

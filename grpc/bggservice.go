@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -47,6 +49,30 @@ func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardga
 	}
 
 	resp := FindBoardgameByNameResponse{Games: games, Limit: limit, Offset: offset, Total: total}
+
+	return &resp, nil
+}
+
+func (svc *BGGService) FindBoardgameById(ctx context.Context, req *FindBoardgameByIdRequest) (*FindBoardgameByIdResponse, error) {
+
+	gameId := req.GetGameId()
+
+	log.Printf("FindBoardgameById: gameId=%d", gameId)
+
+	game, err := svc.bggDB.FindBoardgameById(ctx, gameId)
+	if nil != err {
+		if errors.Is(err, sql.ErrNoRows) {
+			resp := FindBoardgameByIdResponse{
+				Found:   false,
+				Message: fmt.Sprintf("Cannot find game %d", gameId),
+			}
+			return &resp, nil
+		}
+		return nil, fmt.Errorf("Error: FindBoardgameById: %v", err)
+	}
+
+	result := populateGame(*game)
+	resp := FindBoardgameByIdResponse{Game: &result, Found: true}
 
 	return &resp, nil
 }

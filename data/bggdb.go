@@ -65,6 +65,7 @@ func (rec *Comment) Polulate(row *sql.Rows) error {
 const (
 	FIND_GAME_BY_NAME  = "select * from game where name like ? limit ? offset ?"
 	COUNT_GAME_BY_NAME = "select count(*) as game_count from game where name like ?"
+	FIND_GAME_BY_ID    = "select * from game where gid = ?"
 )
 
 func New(dbFile string) BggDB {
@@ -106,6 +107,23 @@ func (bggdb *BggDB) CountBoardgamesByName(ctx context.Context, query string) (*i
 		}
 	}
 	return &count, nil
+}
+
+func (bggdb *BggDB) FindBoardgameById(ctx context.Context, gameId int32) (*Game, error) {
+	rows, err := bggdb.db.QueryContext(ctx, FIND_GAME_BY_ID, gameId)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, sql.ErrNoRows
+	}
+
+	result := Game{}
+	result.Populate(rows)
+
+	return &result, nil
 }
 
 func (bggdb *BggDB) Open() error {
