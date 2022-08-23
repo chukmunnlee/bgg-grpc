@@ -102,7 +102,8 @@ func (svc *BGGService) InsertNewBoardGame(ctx context.Context, req *InsertNewBoa
 	return &resp, nil
 }
 
-func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, stream BGGService_FindCommentsByGameIdServer) error {
+func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest,
+	stream BGGService_FindCommentsByGameIdServer) error {
 
 	ctx := stream.Context()
 
@@ -131,6 +132,25 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, st
 
 	return nil
 }
+
+func (svc *BGGService) InsertNewComment(ctx context.Context, req *InsertNewCommentRequest) (*InsertNewCommentResponse, error) {
+
+	newComment := data.Comment{
+		User:   req.Comment.User,
+		Rating: req.Comment.Rating,
+		Text:   req.Comment.Text,
+		GameId: req.Comment.GameId,
+	}
+
+	commentId, err := svc.bggDB.InsertNewComment(ctx, newComment)
+	if nil != err {
+		return nil, fmt.Errorf("Cannot insert new comment: %v", err)
+	}
+
+	resp := InsertNewCommentResponse{CommentId: *commentId}
+	return &resp, nil
+}
+
 func populateGame(g data.Game) Game {
 	return Game{
 		GameId:     g.GameId,
