@@ -102,6 +102,12 @@ func (svc *BGGService) InsertNewBoardGame(ctx context.Context, req *InsertNewBoa
 	return &resp, nil
 }
 
+func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, stream BGGService_FindCommentsByGameIdServer) error {
+
+	ctx := stream.Context()
+
+	return nil
+}
 func populateGame(g data.Game) Game {
 	return Game{
 		GameId:     g.GameId,

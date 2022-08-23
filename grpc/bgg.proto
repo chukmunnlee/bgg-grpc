@@ -72,8 +72,18 @@ message InsertNewBoardgameResponse {
 	int32 GameId = 1;
 }
 
+message FindCommentsByGameIdRequest {
+	int32 gameId = 1;
+}
+message FindCommentsByGameIdResponse {
+	Comment comment = 1;
+	int32 cursor = 2;
+	int32 total = 3;
+}
+
 service BGGService {
 	rpc FindBoardgameByName(FindBoardgameByNameRequest) returns (FindBoardgameByNameResponse) {};
 	rpc FindBoardgameById(FindBoardgameByIdRequest) returns (FindBoardgameByIdResponse) {};
 	rpc InsertNewBoardGame(InsertNewBoardgameRequest) returns (InsertNewBoardgameResponse) {};
+	rpc FindCommentsByGameId(FindCommentsByGameIdRequest) returns (stream FindCommentsByGameIdResponse) {};
 }
