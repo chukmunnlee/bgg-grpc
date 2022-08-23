@@ -60,16 +60,19 @@ type Comment struct {
 	GameId int32
 }
 
-func (rec *Comment) Polulate(row *sql.Rows) error {
+func (rec *Comment) Populate(row *sql.Rows) error {
 	return row.Scan(&rec.Id, &rec.User, &rec.Rating, &rec.Text, &rec.GameId)
 }
 
 const (
-	FIND_GAME_BY_NAME    = "select * from game where name like ? limit ? offset ?"
-	COUNT_GAME_BY_NAME   = "select count(*) as game_count from game where name like ?"
-	FIND_GAME_BY_ID      = "select * from game where gid = ?"
-	FIND_LARGEST_GAME_ID = "select gid from game order by gid desc limit 1"
-	INSERT_NEW_GAME      = "insert into game(gid, name, year, ranking, users_rated, url, image) values (?, ?, ?, ?, ?, ?, ?)"
+	FIND_GAME_BY_NAME         = "select * from game where name like ? limit ? offset ?"
+	COUNT_GAME_BY_NAME        = "select count(*) as game_count from game where name like ?"
+	FIND_GAME_BY_ID           = "select * from game where gid = ?"
+	FIND_LARGEST_GAME_ID      = "select gid from game order by gid desc limit 1"
+	INSERT_NEW_GAME           = "insert into game(gid, name, year, ranking, users_rated, url, image) values (?, ?, ?, ?, ?, ?, ?)"
+	FIND_COMMENTS_BY_GAME_ID  = "select * from comment where gid = ?"
+	COUNT_COMMENTS_BY_GAME_ID = "select count(*) from comment where gid = ?"
+	INSERT_NEW_COMMENT        = "insert into comment(c_id, user, rating, c_text, gid) values (?, ?, ?, ?, ?)"
 )
 
 func New(dbFile string) BggDB {
@@ -98,6 +101,7 @@ func (bggdb *BggDB) FindBoardgameByName(ctx context.Context, query string, limit
 }
 
 func (bggdb *BggDB) CountBoardgamesByName(ctx context.Context, query string) (*int32, error) {
+
 	rows, err := bggdb.db.QueryContext(ctx, COUNT_GAME_BY_NAME, fmt.Sprintf("%%%s%%", query))
 	if nil != err {
 		return nil, fmt.Errorf("query error: %v", err)
@@ -114,6 +118,7 @@ func (bggdb *BggDB) CountBoardgamesByName(ctx context.Context, query string) (*i
 }
 
 func (bggdb *BggDB) FindBoardgameById(ctx context.Context, gameId int32) (*Game, error) {
+
 	rows, err := bggdb.db.QueryContext(ctx, FIND_GAME_BY_ID, gameId)
 	if nil != err {
 		return nil, fmt.Errorf("query error: %v", err)
@@ -125,12 +130,15 @@ func (bggdb *BggDB) FindBoardgameById(ctx context.Context, gameId int32) (*Game,
 	}
 
 	result := Game{}
-	result.Populate(rows)
+	if err := result.Populate(rows); nil != err {
+		return nil, fmt.Errorf("read error: %v", err)
+	}
 
 	return &result, nil
 }
 
 func (bggdb *BggDB) FindLargestGameId(ctx context.Context) (*int32, error) {
+
 	rows, err := bggdb.db.QueryContext(ctx, FIND_LARGEST_GAME_ID)
 	if nil != err {
 		return nil, fmt.Errorf("query error: %v", err)
@@ -169,6 +177,41 @@ func (bggdb *BggDB) InsertNewBoardGame(ctx context.Context, game Game) (*int32, 
 	}
 
 	return &newGameId, nil
+}
+
+func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (*[]Comment, error) {
+
+	rows, err := bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	var count int32
+	if err := rows.Scan(&count); nil != err {
+		rows.Close()
+		return nil, fmt.Errorf("read result error: %v", err)
+	}
+	rows.Close()
+
+	rows, err = bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	defer rows.Close()
+
+	results := make([]Comment, count, count)
+	for i := int32(0); i < count; i++ {
+		if !rows.Next() {
+			break
+		}
+		c := Comment{}
+		if err := c.Populate(rows); nil != err {
+			log.Printf("Comment.Populate() error: %v", err)
+			continue
+		}
+		results[i] = c
+	}
+
+	return &results, nil
 }
 
 func (bggdb *BggDB) Open() error {
