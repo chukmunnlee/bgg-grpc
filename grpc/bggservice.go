@@ -24,9 +24,9 @@ func New(bggDB data.BggDB) BGGService {
 
 func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardgameByNameRequest) (*FindBoardgameByNameResponse, error) {
 
-	limit := req.GetLimit()
-	offset := req.GetOffset()
-	query := req.GetQuery()
+	limit := req.Limit
+	offset := req.Offset
+	query := req.Query
 
 	log.Printf("FindBoardgameByName: query=%s, offset=%d, limit=%d", query, offset, limit)
 
@@ -35,7 +35,7 @@ func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardga
 		return nil, fmt.Errorf("Error: FindBoardgameByName: %v", err)
 	}
 
-	games := make([]*Game, limit)
+	games := make([]*Game, 0, limit)
 	for _, v := range *rows {
 		g := populateGame(v)
 		games = append(games, &g)
@@ -48,6 +48,8 @@ func (svc *BGGService) FindBoardgameByName(ctx context.Context, req *FindBoardga
 		} else {
 			total = *t
 		}
+	} else {
+		total = int32(len(games))
 	}
 
 	resp := FindBoardgameByNameResponse{Games: games, Limit: limit, Offset: offset, Total: total}
@@ -81,15 +83,15 @@ func (svc *BGGService) FindBoardgameById(ctx context.Context, req *FindBoardgame
 
 func (svc *BGGService) InsertNewBoardGame(ctx context.Context, req *InsertNewBoardgameRequest) (*InsertNewBoardgameResponse, error) {
 
-	log.Printf("InsertNewBoardGame: game=%v", req.GetGame())
+	log.Printf("InsertNewBoardGame: game=%v", req.Game)
 
 	newGame := data.Game{
-		Name:       req.GetGame().Name,
-		Year:       req.GetGame().Year,
-		Ranking:    req.GetGame().Ranking,
-		UsersRated: req.GetGame().UsersRated,
-		Url:        req.GetGame().Url,
-		Image:      req.GetGame().Image,
+		Name:       req.Game.Name,
+		Year:       req.Game.Year,
+		Ranking:    req.Game.Ranking,
+		UsersRated: req.Game.UsersRated,
+		Url:        req.Game.Url,
+		Image:      req.Game.Image,
 	}
 
 	newGameId, err := svc.bggDB.InsertNewBoardGame(ctx, newGame)
@@ -104,6 +106,8 @@ func (svc *BGGService) InsertNewBoardGame(ctx context.Context, req *InsertNewBoa
 
 func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest,
 	stream BGGService_FindCommentsByGameIdServer) error {
+
+	log.Printf("FindCommentsByGameId: %d", req.GameId)
 
 	ctx := stream.Context()
 
@@ -134,6 +138,8 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest,
 }
 
 func (svc *BGGService) InsertNewComment(ctx context.Context, req *InsertNewCommentRequest) (*InsertNewCommentResponse, error) {
+
+	log.Printf("InsertNewComment: comment=%v", req.Comment)
 
 	newComment := data.Comment{
 		User:   req.Comment.User,
