@@ -125,7 +125,7 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest,
 			continue
 		}
 		i++
-		comment := Comment{Id: c.Id, User: c.User, Rating: c.Rating, Text: c.Text, GameId: c.GameId}
+		comment := polulateComment(*c)
 		resp := FindCommentsByGameIdResponse{Comment: &comment, Cursor: i, Total: *count}
 		stream.Send(&resp)
 	}
@@ -160,5 +160,14 @@ func populateGame(g data.Game) Game {
 		UsersRated: g.UsersRated,
 		Url:        g.Url,
 		Image:      g.Image,
+	}
+}
+func polulateComment(g data.Comment) Comment {
+	return Comment{
+		Id:     g.Id,
+		User:   g.User,
+		Rating: g.Rating,
+		Text:   g.Text,
+		GameId: g.GameId,
 	}
 }
