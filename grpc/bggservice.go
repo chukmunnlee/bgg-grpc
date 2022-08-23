@@ -116,7 +116,7 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, st
 	}
 	defer iter.Close()
 
-	var i = int(0)
+	var i = int32(0)
 	for iter.HasNext() {
 		c, err := iter.Get()
 		if nil != err {
@@ -124,7 +124,8 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, st
 			continue
 		}
 		i++
-		resp := FindCommentsByGameIdResponse{Comment: c, Cursor: i, Total: *count}
+		comment := Comment{Id: c.Id, User: c.User, Rating: c.Rating, Text: c.Text, GameId: c.GameId}
+		resp := FindCommentsByGameIdResponse{Comment: &comment, Cursor: i, Total: *count}
 		stream.Send(&resp)
 	}
 

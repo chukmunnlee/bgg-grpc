@@ -26,6 +26,7 @@ type BGGServiceClient interface {
 	FindBoardgameById(ctx context.Context, in *FindBoardgameByIdRequest, opts ...grpc.CallOption) (*FindBoardgameByIdResponse, error)
 	InsertNewBoardGame(ctx context.Context, in *InsertNewBoardgameRequest, opts ...grpc.CallOption) (*InsertNewBoardgameResponse, error)
 	FindCommentsByGameId(ctx context.Context, in *FindCommentsByGameIdRequest, opts ...grpc.CallOption) (BGGService_FindCommentsByGameIdClient, error)
+	InsertNewComment(ctx context.Context, in *InsertNewCommentRequest, opts ...grpc.CallOption) (*InsertNewCommentResponse, error)
 }
 
 type bGGServiceClient struct {
@@ -95,6 +96,15 @@ func (x *bGGServiceFindCommentsByGameIdClient) Recv() (*FindCommentsByGameIdResp
 	return m, nil
 }
 
+func (c *bGGServiceClient) InsertNewComment(ctx context.Context, in *InsertNewCommentRequest, opts ...grpc.CallOption) (*InsertNewCommentResponse, error) {
+	out := new(InsertNewCommentResponse)
+	err := c.cc.Invoke(ctx, "/grpc.BGGService/InsertNewComment", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BGGServiceServer is the server API for BGGService service.
 // All implementations must embed UnimplementedBGGServiceServer
 // for forward compatibility
@@ -103,6 +113,7 @@ type BGGServiceServer interface {
 	FindBoardgameById(context.Context, *FindBoardgameByIdRequest) (*FindBoardgameByIdResponse, error)
 	InsertNewBoardGame(context.Context, *InsertNewBoardgameRequest) (*InsertNewBoardgameResponse, error)
 	FindCommentsByGameId(*FindCommentsByGameIdRequest, BGGService_FindCommentsByGameIdServer) error
+	InsertNewComment(context.Context, *InsertNewCommentRequest) (*InsertNewCommentResponse, error)
 	mustEmbedUnimplementedBGGServiceServer()
 }
 
@@ -121,6 +132,9 @@ func (UnimplementedBGGServiceServer) InsertNewBoardGame(context.Context, *Insert
 }
 func (UnimplementedBGGServiceServer) FindCommentsByGameId(*FindCommentsByGameIdRequest, BGGService_FindCommentsByGameIdServer) error {
 	return status.Errorf(codes.Unimplemented, "method FindCommentsByGameId not implemented")
+}
+func (UnimplementedBGGServiceServer) InsertNewComment(context.Context, *InsertNewCommentRequest) (*InsertNewCommentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InsertNewComment not implemented")
 }
 func (UnimplementedBGGServiceServer) mustEmbedUnimplementedBGGServiceServer() {}
 
@@ -210,6 +224,24 @@ func (x *bGGServiceFindCommentsByGameIdServer) Send(m *FindCommentsByGameIdRespo
 	return x.ServerStream.SendMsg(m)
 }
 
+func _BGGService_InsertNewComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InsertNewCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BGGServiceServer).InsertNewComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/grpc.BGGService/InsertNewComment",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BGGServiceServer).InsertNewComment(ctx, req.(*InsertNewCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BGGService_ServiceDesc is the grpc.ServiceDesc for BGGService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +260,10 @@ var BGGService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InsertNewBoardGame",
 			Handler:    _BGGService_InsertNewBoardGame_Handler,
+		},
+		{
+			MethodName: "InsertNewComment",
+			Handler:    _BGGService_InsertNewComment_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -3,10 +3,12 @@ package data
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"sync/atomic"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -39,13 +41,13 @@ CREATE TABLE IF NOT EXISTS "comment" (
 */
 
 type Game struct {
-	GameId     int32  `db:"gid"`
-	Name       string `db:"name"`
-	Year       int32  `db:"year"`
-	Ranking    int32  `db:"ranking"`
-	UsersRated int32  `db:"users"`
-	Url        string `db:"url"`
-	Image      string `db:"image"`
+	GameId     int32
+	Name       string
+	Year       int32
+	Ranking    int32
+	UsersRated int32
+	Url        string
+	Image      string
 }
 
 func (rec *Game) Populate(row *sql.Rows) error {
@@ -75,7 +77,10 @@ type CommentIterator struct {
 }
 
 func (ci CommentIterator) HasNext() bool {
-	return ci.rows.Next()
+	if nil != ci.rows {
+		return ci.rows.Next()
+	}
+	return false
 }
 func (ci CommentIterator) Get() (*Comment, error) {
 	c := Comment{}
@@ -187,7 +192,6 @@ func (bggdb *BggDB) InsertNewBoardGame(ctx context.Context, game Game) (*int32, 
 
 	result, err := bggdb.db.ExecContext(ctx, INSERT_NEW_GAME, newGameId, game.Name,
 		game.Year, game.Ranking, game.UsersRated, game.Url, game.Image)
-
 	if nil != err {
 		return nil, fmt.Errorf("insert error: %v", err)
 	}
@@ -203,57 +207,9 @@ func (bggdb *BggDB) InsertNewBoardGame(ctx context.Context, game Game) (*int32, 
 	return &newGameId, nil
 }
 
-/*
-func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (*[]Comment, error) {
-
-	rows, err := bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
-	if nil != err {
-		return nil, fmt.Errorf("query error: %v", err)
-	}
-	var count int32
-	if err := rows.Scan(&count); nil != err {
-		rows.Close()
-		return nil, fmt.Errorf("read result error: %v", err)
-	}
-	rows.Close()
-
-	rows, err = bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
-	if nil != err {
-		return nil, fmt.Errorf("query error: %v", err)
-	}
-	defer rows.Close()
-
-	results := make([]Comment, count, count)
-	for i := int32(0); i < count; i++ {
-		if !rows.Next() {
-			break
-		}
-		c := Comment{}
-		if err := c.Populate(rows); nil != err {
-			log.Printf("Comment.Populate() error: %v", err)
-			continue
-		}
-		results[i] = c
-	}
-
-	return &results, nil
-}
-*/
-
 func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (Iterator[*Comment], error) {
 
 	rows, err := bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
-	if nil != err {
-		return nil, fmt.Errorf("query error: %v", err)
-	}
-	var count int32
-	if err := rows.Scan(&count); nil != err {
-		rows.Close()
-		return nil, fmt.Errorf("read result error: %v", err)
-	}
-	rows.Close()
-
-	rows, err = bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
 	if nil != err {
 		return nil, fmt.Errorf("query error: %v", err)
 	}
@@ -263,7 +219,7 @@ func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (Ite
 
 func (bggdb *BggDB) CountCommentsByGameId(ctx context.Context, gameId int32) (*int32, error) {
 
-	rows, err := bggdb.db.QueryContext(ctx, COUNT_COMMENTS_BY_GAME_ID, fmt.Sprintf("%%%d%%", gameId))
+	rows, err := bggdb.db.QueryContext(ctx, COUNT_COMMENTS_BY_GAME_ID, gameId)
 	if nil != err {
 		return nil, fmt.Errorf("query error: %v", err)
 	}
@@ -276,6 +232,34 @@ func (bggdb *BggDB) CountCommentsByGameId(ctx context.Context, gameId int32) (*i
 		}
 	}
 	return &count, nil
+}
+
+func (bggdb *BggDB) InsertNewComment(ctx context.Context, comment Comment) (*string, error) {
+
+	_, err := bggdb.FindBoardgameById(ctx, comment.GameId)
+	if nil != err {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("cannot find gameId: %d", comment.GameId)
+		}
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+
+	commentId := uuid.New().String()[:8]
+	result, err := bggdb.db.ExecContext(ctx, INSERT_NEW_COMMENT, commentId, comment.User,
+		comment.Rating, comment.Text, comment.GameId)
+	if nil != err {
+		return nil, fmt.Errorf("insert error: %v", err)
+	}
+
+	rowCount, err := result.RowsAffected()
+	if nil != err {
+		return nil, fmt.Errorf("insert error: %v", err)
+	}
+	if rowCount < 1 {
+		return nil, fmt.Errorf("inserted but row count is not 1: %d", rowCount)
+	}
+
+	return &commentId, nil
 }
 
 func (bggdb *BggDB) Open() error {
