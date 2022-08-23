@@ -64,6 +64,30 @@ func (rec *Comment) Populate(row *sql.Rows) error {
 	return row.Scan(&rec.Id, &rec.User, &rec.Rating, &rec.Text, &rec.GameId)
 }
 
+type Iterator[T any] interface {
+	HasNext() bool
+	Get() (T, error)
+	Close()
+}
+
+type CommentIterator struct {
+	rows *sql.Rows
+}
+
+func (ci CommentIterator) HasNext() bool {
+	return ci.rows.Next()
+}
+func (ci CommentIterator) Get() (*Comment, error) {
+	c := Comment{}
+	if err := c.Populate(ci.rows); nil != err {
+		return nil, err
+	}
+	return &c, nil
+}
+func (ci CommentIterator) Close() {
+	ci.rows.Close()
+}
+
 const (
 	FIND_GAME_BY_NAME         = "select * from game where name like ? limit ? offset ?"
 	COUNT_GAME_BY_NAME        = "select count(*) as game_count from game where name like ?"
@@ -179,6 +203,7 @@ func (bggdb *BggDB) InsertNewBoardGame(ctx context.Context, game Game) (*int32, 
 	return &newGameId, nil
 }
 
+/*
 func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (*[]Comment, error) {
 
 	rows, err := bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
@@ -212,6 +237,45 @@ func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (*[]
 	}
 
 	return &results, nil
+}
+*/
+
+func (bggdb *BggDB) FindCommentsByGameId(ctx context.Context, gameId int32) (Iterator[*Comment], error) {
+
+	rows, err := bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	var count int32
+	if err := rows.Scan(&count); nil != err {
+		rows.Close()
+		return nil, fmt.Errorf("read result error: %v", err)
+	}
+	rows.Close()
+
+	rows, err = bggdb.db.QueryContext(ctx, FIND_COMMENTS_BY_GAME_ID, gameId)
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+
+	return CommentIterator{rows: rows}, nil
+}
+
+func (bggdb *BggDB) CountCommentsByGameId(ctx context.Context, gameId int32) (*int32, error) {
+
+	rows, err := bggdb.db.QueryContext(ctx, COUNT_COMMENTS_BY_GAME_ID, fmt.Sprintf("%%%d%%", gameId))
+	if nil != err {
+		return nil, fmt.Errorf("query error: %v", err)
+	}
+	defer rows.Close()
+
+	var count int32 = 0
+	if rows.Next() {
+		if err := rows.Scan(&count); nil != err {
+			return nil, fmt.Errorf("rows.Scan: %v", err)
+		}
+	}
+	return &count, nil
 }
 
 func (bggdb *BggDB) Open() error {

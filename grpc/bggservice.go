@@ -106,6 +106,28 @@ func (svc *BGGService) FindCommentsByGameId(req *FindCommentsByGameIdRequest, st
 
 	ctx := stream.Context()
 
+	count, err := svc.bggDB.CountCommentsByGameId(ctx, req.GameId)
+	if nil != err {
+		return err
+	}
+	iter, err := svc.bggDB.FindCommentsByGameId(ctx, req.GameId)
+	if nil != err {
+		return err
+	}
+	defer iter.Close()
+
+	var i = int(0)
+	for iter.HasNext() {
+		c, err := iter.Get()
+		if nil != err {
+			(*count)--
+			continue
+		}
+		i++
+		resp := FindCommentsByGameIdResponse{Comment: c, Cursor: i, Total: *count}
+		stream.Send(&resp)
+	}
+
 	return nil
 }
 func populateGame(g data.Game) Game {
