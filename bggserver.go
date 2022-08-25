@@ -27,6 +27,10 @@ func main() {
 		log.Fatalf("Missing sqlite3 database file")
 	}
 
+	if _, err := os.Stat(*dbFile); nil != err {
+		log.Fatalf("Database does not exists: %s, %v", *dbFile, err)
+	}
+
 	bggdb := db.New(*dbFile)
 	if err := bggdb.Open(); nil != err {
 		log.Fatalf("Cannot open sqlite3 file: %v", err)

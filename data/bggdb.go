@@ -268,8 +268,11 @@ func (bggdb *BggDB) Open() error {
 	} else {
 		bggdb.db = db
 		// Ignore error
-		idx, _ := bggdb.FindLargestGameId(context.Background())
-		bggdb.newIndex = *idx + 10
+		if idx, err := bggdb.FindLargestGameId(context.Background()); nil != err {
+			return err
+		} else {
+			bggdb.newIndex = *idx + 10
+		}
 	}
 
 	return nil
