@@ -1,10 +1,12 @@
-ARG GOVER="1.19.0"
+ARG GOVER="1.19.0-alpine3.16"
 
 FROM golang:${GOVER} AS builder
 
 LABEL org.opencontainers.image.source=https://github.com/chukmunnlee/bgg-grpc
 
 WORKDIR /go/src/github.com/chukmunnlee/bgg-grpc
+
+RUN apk add --no-cache make build-base
 
 ADD go.mod .
 ADD go.sum .
@@ -16,7 +18,7 @@ RUN go mod download
 #RUN CGO_ENABLED=0 go build -o bggserver .
 RUN go build -o bggserver .
 
-FROM gcr.io/distroless/static-debian11
+FROM alpine:3.16
 
 WORKDIR /app
 
@@ -26,4 +28,5 @@ ADD data/bgg.sqlite data/bgg.sqlite
 
 VOLUME /app/data
 
-CMD [ "/app/bggserver", "--database", "/app/data/bgg.sqlite", "--port", "50051", "--reflect" ]
+ENTRYPOINT [ "/app/bggserver", "--database", "/app/data/bgg.sqlite", "--port", "50051" ] 
+CMD [ "--reflect" ]
