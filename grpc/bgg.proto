@@ -2,6 +2,8 @@ syntax = "proto3";
 
 option go_package = "github.com/chukmunnlee/bgg-grpc/grpc";
 
+import "google/api/annotations.proto";
+
 package grpc;
 
 /*
@@ -89,8 +91,17 @@ message InsertNewCommentResponse {
 }
 
 service BGGService {
-	rpc FindBoardgameByName(FindBoardgameByNameRequest) returns (FindBoardgameByNameResponse) {};
-	rpc FindBoardgameById(FindBoardgameByIdRequest) returns (FindBoardgameByIdResponse) {};
+   rpc FindBoardgameByName(FindBoardgameByNameRequest) returns (FindBoardgameByNameResponse) {
+      option(google.api.http) = {
+         get: "/games/search"
+      };
+   };
+
+	rpc FindBoardgameById(FindBoardgameByIdRequest) returns (FindBoardgameByIdResponse) {
+      option(google.api.http) = {
+         get: "/game/{gameId}"
+      };
+   };
 	rpc InsertNewBoardGame(InsertNewBoardgameRequest) returns (InsertNewBoardgameResponse) {};
 	rpc FindCommentsByGameId(FindCommentsByGameIdRequest) returns (stream FindCommentsByGameIdResponse) {};
 	rpc InsertNewComment(InsertNewCommentRequest) returns (InsertNewCommentResponse) {};

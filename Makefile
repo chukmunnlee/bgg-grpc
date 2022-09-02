@@ -2,9 +2,16 @@
 
 PROTOC=protoc
 
-gen-grpc: grpc/bgg_grpc.pb.go grpc/bgg.pb.go
+grpc: grpc/bgg_grpc.pb.go grpc/bgg.pb.go
 	$(PROTOC) --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		grpc/bgg.proto
+
+gateway: 
+	$(PROTOC) -I . --grpc-gateway_out=. \
+		--grpc-gateway_opt=paths=source_relative \
+		--grpc-gateway_opt=logtostderr=true \
+		--grpc-gateway_opt=generate_unbound_methods=true \
 		grpc/bgg.proto
 
 build: linux windows darwin

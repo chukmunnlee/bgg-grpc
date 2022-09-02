@@ -1,0 +1,10 @@
+fileignoreconfig:
+- filename: '*.sqlite'
+  checksum: 377c93029113b6db2a785429a61b2b08cdca429a6fd817fbbc68c36822243f99
+- filename: '*.sql'
+  checksum: 928c9652ff4949456ca0999b175329578e74a07eb0e881793088d11a38a805cd
+
+version: "1.0"
+Talisman done in 164.6625ms
+scopeconfig:
+- scope: go
