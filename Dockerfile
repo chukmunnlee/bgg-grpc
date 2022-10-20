@@ -26,7 +26,9 @@ COPY --from=builder /go/src/github.com/chukmunnlee/bgg-grpc/bggserver /app/bggse
 
 ADD data/bgg.sqlite data/bgg.sqlite
 
-VOLUME /app/data
+ENV PORT=50051
 
-ENTRYPOINT [ "/app/bggserver", "--database", "/app/data/bgg.sqlite", "--port", "50051" ] 
-CMD [ "--reflect" ]
+VOLUME /app/data
+EXPOSE ${PORT}
+
+ENTRYPOINT /app/bggserver --database /app/data/bgg.sqlite --port ${PORT} --reflect
