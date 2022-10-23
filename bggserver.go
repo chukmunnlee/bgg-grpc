@@ -14,13 +14,17 @@ import (
 
 	db "github.com/chukmunnlee/bgg-grpc/data"
 	svc "github.com/chukmunnlee/bgg-grpc/grpc/server"
+	health "github.com/chukmunnlee/bgg-grpc/grpc/healthcheck"
 )
 
 func main() {
 
+	var hc *health.HealthService
+
 	dbFile := flag.String("database", "", "Sqlite3 database file")
 	port := flag.Int("port", 50051, "Server's port")
-	server := flag.String("server", "127.0.0.1", "Interface to bind to")
+	healthPort := flag.Int("healthPort", -1, "Health check port, -1 is disabled")
+	intf := flag.String("interface", "127.0.0.1", "Interface to bind to")
 	reflect := flag.Bool("reflect", false, "Enable reflection")
 	flag.Parse()
 
@@ -45,23 +49,43 @@ func main() {
 	svc.RegisterBGGServiceServer(s, &bggSvc)
 
 	if *reflect {
-		log.Println("Enabling reflection")
+		log.Println("Enabling reflection for BGG Server")
 		reflection.Register(s)
 	}
 
-	intf := fmt.Sprintf("%s:%d", *server, *port)
-	lis, err := net.Listen("tcp", intf)
+	connStr := fmt.Sprintf("%s:%d", *intf, *port)
+	lis, err := net.Listen("tcp", connStr)
 	if nil != err {
 		log.Fatalf("Cannot create listener: %v\n", err)
 	}
 	defer lis.Close()
 
-	log.Printf("Starting BGGService on interface %s", intf)
+	log.Printf("Starting BGGService on interface %s", connStr)
 	go func() {
 		if err := s.Serve(lis); nil != err {
 			log.Fatalf("Cannot start service: %v", err)
 		}
 	}()
+
+	// If healthcheck is enabled
+	if *healthPort > 0 {
+
+		hc, err = health.New("127.0.0.1", *port)
+		if nil != err {
+			log.Fatalf("Cannot start healthcheck: %v", err)
+		}
+
+		err = hc.Start(*intf, *healthPort)
+		if nil != err {
+			log.Fatalf("Cannot start healthcheck: %v", err)
+		}
+		defer hc.Close()
+
+		if *reflect {
+		log.Println("Enabling reflection for healthcheck service")
+			reflection.Register(hc.Server)
+		}
+	}
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
