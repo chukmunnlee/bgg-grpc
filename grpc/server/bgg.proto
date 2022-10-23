@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-option go_package = "github.com/chukmunnlee/bgg-grpc/grpc";
+option go_package = "github.com/chukmunnlee/bgg-grpc/grpc/server";
 
 import "google/api/annotations.proto";
 
-package grpc;
+package grpc.server;
 
 /*
 CREATE TABLE IF NOT EXISTS "game" (

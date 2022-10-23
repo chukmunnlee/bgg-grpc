@@ -2,10 +2,13 @@
 
 PROTOC=protoc
 
-grpc: grpc/bgg_grpc.pb.go grpc/bgg.pb.go
+grpc: 
 	$(PROTOC) --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		grpc/bgg.proto
+		grpc/server/bgg.proto
+	$(PROTOC) --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		grpc/healthcheck/healthcheck.proto
 
 gateway: 
 	$(PROTOC) -I . --grpc-gateway_out=. \

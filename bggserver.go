@@ -13,13 +13,14 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	db "github.com/chukmunnlee/bgg-grpc/data"
-	svc "github.com/chukmunnlee/bgg-grpc/grpc"
+	svc "github.com/chukmunnlee/bgg-grpc/grpc/server"
 )
 
 func main() {
 
 	dbFile := flag.String("database", "", "Sqlite3 database file")
 	port := flag.Int("port", 50051, "Server's port")
+	server := flag.String("server", "127.0.0.1", "Interface to bind to")
 	reflect := flag.Bool("reflect", false, "Enable reflection")
 	flag.Parse()
 
@@ -48,13 +49,14 @@ func main() {
 		reflection.Register(s)
 	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
+	intf := fmt.Sprintf("%s:%d", *server, *port)
+	lis, err := net.Listen("tcp", intf)
 	if nil != err {
 		log.Fatalf("Cannot create listener: %v\n", err)
 	}
 	defer lis.Close()
 
-	log.Printf("Starting BGGService on port %d", *port)
+	log.Printf("Starting BGGService on interface %s", intf)
 	go func() {
 		if err := s.Serve(lis); nil != err {
 			log.Fatalf("Cannot start service: %v", err)

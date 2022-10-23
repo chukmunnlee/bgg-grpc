@@ -1,4 +1,4 @@
-package grpc
+package server
 
 import (
 	"context"
@@ -18,7 +18,7 @@ type BGGService struct {
 
 func New(bggDB data.BggDB) BGGService {
 	svc := BGGService{bggDB: bggDB}
-	log.Printf("Start of gameId index: %d", bggDB.StartOfNewGameId())
+	log.Printf("Start of new gameId: %d", bggDB.StartOfNewGameId())
 	return svc
 }
 
