@@ -30,11 +30,8 @@ func New(intf string, targetPort int) (*HealthService, error) {
 
 func (h *HealthService) Start(intf string, port int) error {
 	hs := grpc.NewServer()
-	hcSvc, err := New(intf, port)
-	if nil != err {
-		return fmt.Errorf("Cannot start healthcheck: %v", err)
-	}
-	RegisterHealthServer(hs, hcSvc)
+	h.Server = hs
+	RegisterHealthServer(hs, h)
 
 	connStr := fmt.Sprintf("%s:%d", intf, port)
 	lis, err := net.Listen("tcp", connStr)
@@ -49,8 +46,6 @@ func (h *HealthService) Start(intf string, port int) error {
 		}
 	}()
 
-	h.Server = hs
-
 	return nil
 }
 
@@ -62,7 +57,7 @@ func (h *HealthService) Check(ctx context.Context, req *HealthCheckRequest) (*He
 
 	if _, err := h.bggClient.FindBoardgameById(ctx, bggReq); nil != err {
 		log.Printf("Check failed: %v", err)
-		return &HealthCheckResponse{ Status: HealthCheckResponse_NOT_SERVING }, nil
+		return &HealthCheckResponse{ Status: HealthCheckResponse_NOT_SERVING }, fmt.Errorf("%v", err)
 	}
 
 	return &HealthCheckResponse{ Status: HealthCheckResponse_SERVING }, nil

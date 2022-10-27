@@ -21,7 +21,7 @@ func main() {
 
 	var hc *health.HealthService
 
-	dbFile := flag.String("database", "", "Sqlite3 database file")
+	dbFile := flag.String("database", "./data/bgg.sqlite", "Sqlite3 database file")
 	port := flag.Int("port", 50051, "Server's port")
 	healthPort := flag.Int("healthPort", -1, "Health check port, -1 is disabled")
 	intf := flag.String("interface", "127.0.0.1", "Interface to bind to")
