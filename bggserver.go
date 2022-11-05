@@ -15,6 +15,8 @@ import (
 	db "github.com/chukmunnlee/bgg-grpc/data"
 	svc "github.com/chukmunnlee/bgg-grpc/grpc/server"
 	health "github.com/chukmunnlee/bgg-grpc/grpc/healthcheck"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 func main() {
