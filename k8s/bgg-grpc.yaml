@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bgg-grpc-deploy
+  labels:
+    name: bgg-grpc-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: bgg-grpc-po
+  template:
+    metadata:
+      labels:
+        name: bgg-grpc-po
+    spec:
+      containers:
+      - name: bgg-grpc-container
+        image: ghcr.io/chukmunnlee/grpc-bggserver:0.2.1 
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PORT
+          value: "50051"
+        - name: HEALTH_PORT
+          value: "5000"
+        ports:
+        - containerPort: 50051
+          protocol: TCP
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "grpcurl -plaintext localhost:${HEALTH_PORT} grpc.healthcheck.Health/Check"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bgg-grpc-svc
+  labels:
+    name: bgg-grpc-svc
+spec:
+  type: ClusterIP
+  selector:
+    name: bgg-grpc-po
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bgg-grpc-ing
+  labels:
+    name: bgg-grpc-ing
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: bgg-grpc-192.168.39.41.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bgg-grpc-svc
+            port:
+              number: 50051
+  tls:
+  - secretName: bgg-grpc-tls
+    hosts:
+    - bgg-grpc-192.168.39.41.nip.io
+
