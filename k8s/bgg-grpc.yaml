@@ -61,7 +61,6 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
-  ingressClassName: nginx
   rules:
   - host: bgg-grpc-192.168.39.41.nip.io
     http:
@@ -77,4 +76,5 @@ spec:
   - secretName: bgg-grpc-tls
     hosts:
     - bgg-grpc-192.168.39.41.nip.io
+
 

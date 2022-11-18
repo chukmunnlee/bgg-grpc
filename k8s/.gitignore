@@ -1,3 +1,5 @@
+server.csr
+server.cert
 server.crt
 server.key
 bgg-grpc-tls.yaml
