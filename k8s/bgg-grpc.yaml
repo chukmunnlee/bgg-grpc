@@ -62,7 +62,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
   rules:
-  - host: bgg-grpc-192.168.39.41.nip.io
+  - host: bgg-grpc-192.168.39.80.nip.io
     http:
       paths:
       - path: /
@@ -75,6 +75,5 @@ spec:
   tls:
   - secretName: bgg-grpc-tls
     hosts:
-    - bgg-grpc-192.168.39.41.nip.io
-
+    - bgg-grpc-192.168.39.80.nip.io
 
